@@ -545,164 +545,130 @@ M1 d g 0 0 my_nmos
         }
 
         // ─── Smart Output Parser ──────────────────────────────────────────
-        function parseAndRender(raw, elapsed) {
-            const lines = raw.split('\n');
-            const sections = [];
-            const warnings = [];
-            const errors = [];
+        // ─── Smart Output Parser ──────────────────────────────────────────
+function parseAndRender(raw, elapsed) {
+    const lines = raw.split('\n');
+    const warnings = [];
+    const errors = [];
+    const opRows = [];
+    let inOP = false;
+    let html = '<div class="results-wrap">'; // Main container
 
-            // Detect analysis types present
-            const hasOP  = /operating point/i.test(raw);
-            const hasDC  = /dc transfer/i.test(raw) || /dc sweep/i.test(raw);
-            const hasAC  = /ac analysis/i.test(raw);
-            const hasTRAN= /transient/i.test(raw);
+    // 1. Collect warnings and errors
+    lines.forEach(l => {
+        if (/^\s*warning/i.test(l) && l.trim().length > 8)  warnings.push(l.trim());
+        if (/^\s*error/i.test(l)   && l.trim().length > 5 && !/warning/i.test(l)) errors.push(l.trim());
+    });
 
-            // ── Collect warnings and errors ──
-            lines.forEach(l => {
-                if (/^\s*warning/i.test(l) && l.trim().length > 8)  warnings.push(l.trim());
-                if (/^\s*error/i.test(l)   && l.trim().length > 5)  errors.push(l.trim());
-            });
-
-            // ── Parse Operating Point (.op) ──
-            const opRows = [];
-            let inOP = false;
-            for (let i = 0; i < lines.length; i++) {
-                const l = lines[i];
-                if (/operating point/i.test(l)) { inOP = true; continue; }
-                if (inOP) {
-                    // Node voltages: "v(node) = value"
-                    const vMatch = l.match(/^\s*(v\(\S+\))\s*=\s*([\d.eE+\-]+)/i);
-                    if (vMatch) { opRows.push({ name: vMatch[1], value: formatVal(vMatch[2]), unit: 'V', desc: 'Node Voltage' }); continue; }
-                    // Currents: "i(component) = value"
-                    const iMatch = l.match(/^\s*(i[dsgb]?\(\S+\))\s*=\s*([\d.eE+\-]+)/i);
-                    if (iMatch) { opRows.push({ name: iMatch[1], value: formatVal(iMatch[2]), unit: 'A', desc: 'Branch Current' }); continue; }
-                    // MOSFET/BJT model params block (id, vgs, vth etc)
-                    const mosMatch = l.match(/^\s*(id|vgs|vds|vth|vdsat|vbs|vbe|vce|ic|ib|ie|gm|gds|cbd|cbs|cgs|cgd|cgb)\s*=\s*([\d.eE+\-]+)/i);
-                    if (mosMatch) {
-                        const paramUnits = { id:'A', ic:'A', ib:'A', ie:'A', gm:'S', gds:'S', vgs:'V', vds:'V', vth:'V', vdsat:'V', vbs:'V', vbe:'V', vce:'V', cbd:'F', cbs:'F', cgs:'F', cgd:'F', cgb:'F' };
-                        const pname = mosMatch[1].toLowerCase();
-                        opRows.push({ name: mosMatch[1].toUpperCase(), value: formatVal(mosMatch[2]), unit: paramUnits[pname]||'', desc: paramDescription(pname) });
-                        continue;
-                    }
-                    if (/^-{5,}/.test(l) && opRows.length > 0) break;
-                }
+    // 2. Parse Operating Point (.op)
+    for (let i = 0; i < lines.length; i++) {
+        const l = lines[i];
+        if (/operating point/i.test(l)) { inOP = true; continue; }
+        if (inOP) {
+            // Voltages
+            const vMatch = l.match(/^\s*(v\([^)]+\))\s*=\s*([-\d.eE+]+)/i);
+            if (vMatch) { opRows.push({ name: vMatch[1].toUpperCase(), value: formatVal(vMatch[2]), unit: 'V', note: 'Node Voltage' }); continue; }
+            
+            // Currents
+            const iMatch = l.match(/^\s*(i[dsgbc]*\([^)]+\))\s*=\s*([-\d.eE+]+)/i);
+            if (iMatch) { opRows.push({ name: iMatch[1].toUpperCase(), value: formatVal(iMatch[2]), unit: 'A', note: 'Branch Current' }); continue; }
+            
+            // Model Parameters (MOSFETs, Diodes, BJTs)
+            const paramMatch = l.match(/^\s*([a-z]+)\s*=\s*([-\d.eE+]+)/i);
+            if (paramMatch && !['v','i'].includes(paramMatch[1])) {
+                const p = paramMatch[1].toLowerCase();
+                let unit = '';
+                if (['id','ic','ib','ie'].includes(p)) unit = 'A';
+                if (['vgs','vds','vth','vdsat','vbs','vbe','vce'].includes(p)) unit = 'V';
+                if (['gm','gds'].includes(p)) unit = 'S';
+                if (['cbd','cbs','cgs','cgd'].includes(p)) unit = 'F';
+                
+                opRows.push({ name: paramMatch[1].toUpperCase(), value: formatVal(paramMatch[2]), unit: unit, note: paramDescription(p) });
             }
+            if (/^-{5,}/.test(l) && opRows.length > 0) break;
+        }
+    }
 
-            // ── Parse .print / tabular output ──
-            const printRows = [];
-            let headerLine = null, colNames = [];
-            for (let i = 0; i < lines.length; i++) {
-                const l = lines[i];
-                // Detect header row (contains column names like v(out), vp(out), freq, time...)
-                if (!headerLine && /^\s*(index|freq|time|v\(|vp\(|vm\(|i\(|vdb\()/i.test(l)) {
-                    headerLine = l;
-                    colNames = l.trim().split(/\s{2,}|\t+/).map(s => s.trim()).filter(Boolean);
-                    continue;
-                }
-                if (headerLine && /^\s*[\d.eE+\-]/.test(l)) {
-                    const vals = l.trim().split(/\s+/);
-                    if (vals.length >= 2) {
-                        printRows.push(vals);
-                    }
-                }
-                // Stop if blank line after data
-                if (headerLine && printRows.length > 0 && /^\s*$/.test(l)) break;
+    // 3. Render the UI
+    if (errors.length) {
+        html += `<div class="inference-box err">
+                    <div class="inf-label">SIMULATION FAILED</div>
+                    <div class="inf-text">${esc(errors[0])}</div>
+                 </div>`;
+    }
+
+    if (warnings.length) {
+        html += `<div class="inference-box warn">
+                    <div class="inf-label">ENGINE WARNING</div>
+                    <div class="inf-text">${esc(warnings[0])}</div>
+                 </div>`;
+    }
+
+    // Render Operating Point Data using your beautiful CSS
+    if (opRows.length) {
+        html += `
+        <div class="res-block">
+            <div class="res-block-head"><span class="blk-icon">⚡</span> DC OPERATING POINT</div>
+            <div class="res-block-body">
+                ${opRows.map(r => `
+                <div class="kv-row">
+                    <div class="kv-label">${esc(r.name)}</div>
+                    <div class="kv-val">${esc(r.value)}</div>
+                    <div class="kv-unit">${esc(r.unit)}</div>
+                    <div class="kv-note">${esc(r.note)}</div>
+                </div>
+                `).join('')}
+            </div>
+        </div>`;
+    }
+
+    // 4. SMART INFERENCE ENGINE (Value-Add Feature)
+    // Automatically determine transistor operating regions
+    const vthRow = opRows.find(r => r.name === 'VTH');
+    const vgsRow = opRows.find(r => r.name === 'VGS');
+    const vdsRow = opRows.find(r => r.name === 'VDS');
+    
+    if (vthRow && vgsRow) {
+        const vth = parseFloat(vthRow.value);
+        const vgs = parseFloat(vgsRow.value);
+        const vds = vdsRow ? parseFloat(vdsRow.value) : 0;
+        
+        let region = "Cut-off (Off)";
+        let statusClass = "warn";
+        
+        if (vgs > vth) {
+            if (vds >= (vgs - vth)) {
+                region = "Saturation (Active)";
+                statusClass = ""; // Normal glow
+            } else {
+                region = "Triode (Linear)";
+                statusClass = "";
             }
-
-            // ── Parse DC transfer curve summary ──
-            const dcSummary = [];
-            for (let i = 0; i < lines.length; i++) {
-                const m = lines[i].match(/^\s*(v\(\S+\)|i\(\S+\))\s*=\s*([\d.eE+\-]+)/i);
-                if (m && !inOP) dcSummary.push({ name: m[1], value: formatVal(m[2]) });
-            }
-
-            // ── BUILD HTML ──
-            let html = '';
-
-            // Errors first
-            if (errors.length) {
-                html += `<div class="result-section">
-                    <div class="result-section-title">⚠ Errors</div>
-                    ${errors.map(e => `<div style="color:var(--red);font-family:var(--mono);font-size:12px;margin-bottom:4px;">✖ ${esc(e)}</div>`).join('')}
-                </div>`;
-            }
-
-            // Warnings
-            if (warnings.length) {
-                html += `<div class="result-section">
-                    <div class="result-section-title">⚡ Warnings</div>
-                    ${warnings.map(w => `<div style="color:var(--amber);font-family:var(--mono);font-size:12px;margin-bottom:4px;">△ ${esc(w)}</div>`).join('')}
-                </div>`;
-            }
-
-            // Operating Point Results
-            if (opRows.length) {
-                html += `<div class="result-section">
-                    <div class="result-section-title">◉ DC Operating Point</div>
-                    <table class="result-table">
-                        <thead><tr>
-                            <th>Parameter</th><th>Value</th><th>Unit</th><th>Description</th>
-                        </tr></thead>
-                        <tbody>
-                            ${opRows.map(r => `<tr>
-                                <td class="td-name">${esc(r.name)}</td>
-                                <td class="td-value">${esc(r.value)}</td>
-                                <td class="td-unit">${esc(r.unit)}</td>
-                                <td class="td-desc">${esc(r.desc)}</td>
-                            </tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>`;
-            }
-
-            // .print tabular results
-            if (printRows.length && colNames.length) {
-                const analysisLabel = hasAC ? 'AC Sweep Results' : hasTRAN ? 'Transient Analysis' : 'DC Sweep Results';
-                const maxRows = 30;
-                const displayRows = printRows.slice(0, maxRows);
-                html += `<div class="result-section">
-                    <div class="result-section-title">📊 ${analysisLabel}</div>
-                    <div class="analysis-info">${printRows.length} data points${printRows.length > maxRows ? ` · showing first ${maxRows}` : ''}</div>
-                    <table class="result-table">
-                        <thead><tr>${colNames.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
-                        <tbody>
-                            ${displayRows.map(row =>
-                                `<tr>${row.map((v,i) => `<td class="${i===0?'td-name':'td-value'}">${formatSci(v)}</td>`).join('')}</tr>`
-                            ).join('')}
-                        </tbody>
-                    </table>
-                    ${printRows.length > maxRows ? `<div style="color:var(--text-dim);font-family:var(--mono);font-size:11px;margin-top:8px;">... ${printRows.length - maxRows} more rows in raw output</div>` : ''}
-                </div>`;
-            }
-
-            // Summary tags
-            const tags = [];
-            if (hasOP)   tags.push('<span class="summary-tag">OP POINT</span>');
-            if (hasDC)   tags.push('<span class="summary-tag">DC SWEEP</span>');
-            if (hasAC)   tags.push('<span class="summary-tag">AC ANALYSIS</span>');
-            if (hasTRAN) tags.push('<span class="summary-tag">TRANSIENT</span>');
-            tags.push(`<span class="summary-tag">${elapsed}s</span>`);
-            if (warnings.length) tags.push(`<span class="summary-tag warn">⚡ ${warnings.length} WARNING${warnings.length>1?'S':''}</span>`);
-            if (errors.length)   tags.push(`<span class="summary-tag err">✖ ${errors.length} ERROR${errors.length>1?'S':''}</span>`);
-
-            if (!opRows.length && !printRows.length && !errors.length) {
-                // Fallback: nothing structured found, show cleaned raw
-                html += `<div class="result-section">
-                    <div class="result-section-title">Output</div>
-                    <div style="font-family:var(--mono);font-size:12px;color:#a8d8c0;white-space:pre-wrap;">${cleanRaw(raw)}</div>
-                </div>`;
-            }
-
-            // Raw output collapsible
-            html += `<div class="raw-toggle">
-                <div style="margin-bottom:8px;">${tags.join('')}</div>
-                <button class="raw-toggle-btn" onclick="toggleRaw(this)">▶ SHOW RAW OUTPUT</button>
-                <div class="raw-output">${esc(raw)}</div>
-            </div>`;
-
-            return html;
         }
 
+        html += `
+        <div class="inference-box ${statusClass}">
+            <div class="inf-label">SMART INFERENCE: TRANSISTOR STATE</div>
+            <div class="inf-text">Device is operating in the <strong>${region}</strong> region. <br>
+            <span style="font-size:11px; opacity:0.7;">Condition evaluated: VGS (${vgs}V) ${vgs > vth ? '>' : '<'} VTH (${vth}V)</span></div>
+        </div>`;
+    }
+
+    // 5. Raw Output Toggle Footer
+    html += `
+        <div class="raw-toggle">
+            <div class="footer-tags">
+                <span class="ftag">⏱ ${elapsed}s</span>
+                ${warnings.length ? `<span class="ftag warn">${warnings.length} WARN</span>` : ''}
+                ${errors.length ? `<span class="ftag err">${errors.length} ERR</span>` : ''}
+            </div>
+            <button class="raw-toggle-btn" onclick="toggleRaw(this)">▶ SHOW RAW OUTPUT</button>
+            <div class="raw-output">${esc(cleanRaw(raw))}</div>
+        </div>
+    </div>`; // End results-wrap
+
+    return html;
+}
         function toggleRaw(btn) {
             const raw = btn.nextElementSibling;
             const visible = raw.style.display === 'block';
