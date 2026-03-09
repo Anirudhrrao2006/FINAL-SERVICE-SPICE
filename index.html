@@ -547,6 +547,7 @@ M1 d g 0 0 my_nmos
         // ─── Smart Output Parser ──────────────────────────────────────────
         // ─── Smart Output Parser ──────────────────────────────────────────
 // ─── Smart Output Parser ──────────────────────────────────────────
+// ─── Smart Output Parser ──────────────────────────────────────────
 function parseAndRender(raw, elapsed) {
     const lines = raw.split('\n');
     const warnings = [];
@@ -565,42 +566,51 @@ function parseAndRender(raw, elapsed) {
 
     // 2. Parse Data
     for (let i = 0; i < lines.length; i++) {
-        const l = lines[i];
+        const l = lines[i].trim();
 
         // --- Operating Point (.op) Parsing ---
         if (/operating point/i.test(l)) { inOP = true; continue; }
+        if (inOP && /^[A-Z][a-z]+ (Analysis|Characteristic|Sweep)/.test(l)) { inOP = false; }
+
         if (inOP) {
-            const vMatch = l.match(/^\s*(v\([^)]+\))\s*=\s*([-\d.eE+]+)/i);
-            if (vMatch) { opRows.push({ name: vMatch[1].toUpperCase(), value: formatVal(vMatch[2]), unit: 'V', note: 'Node Voltage' }); continue; }
+            // Ngspice uses spaces (not equals signs) for .op output: "vgs    2.0"
+            const opMatch = l.match(/^([a-zA-Z0-9_#]+)\s+([-\d.eE+]+)$/);
+            if (opMatch) {
+                const name = opMatch[1].toLowerCase();
+                const valStr = opMatch[2];
+                
+                // Ignore table headers
+                if (!['node', 'voltage', 'source', 'current', 'device', 'model'].includes(name)) {
+                    let unit = '';
+                    let note = 'Parameter';
 
-            const iMatch = l.match(/^\s*(i[dsgbc]*\([^)]+\))\s*=\s*([-\d.eE+]+)/i);
-            if (iMatch) { opRows.push({ name: iMatch[1].toUpperCase(), value: formatVal(iMatch[2]), unit: 'A', note: 'Branch Current' }); continue; }
+                    if (name.endsWith('#branch')) { unit = 'A'; note = 'Branch Current'; }
+                    else if (['id','ic','ib','ie'].includes(name)) { unit = 'A'; note = 'Current'; }
+                    else if (['vgs','vds','vth','vdsat','vbs','vbe','vce'].includes(name)) { unit = 'V'; note = 'Voltage'; }
+                    else if (['gm','gds'].includes(name)) { unit = 'S'; note = 'Conductance'; }
+                    else if (['cbd','cbs','cgs','cgd'].includes(name)) { unit = 'F'; note = 'Capacitance'; }
+                    else { unit = 'V'; note = 'Node Voltage'; } // Default assumption for generic nodes
 
-            const paramMatch = l.match(/^\s*([a-z]+)\s*=\s*([-\d.eE+]+)/i);
-            if (paramMatch && !['v','i'].includes(paramMatch[1])) {
-                const p = paramMatch[1].toLowerCase();
-                let unit = '';
-                if (['id','ic','ib','ie'].includes(p)) unit = 'A';
-                if (['vgs','vds','vth','vdsat','vbs','vbe','vce'].includes(p)) unit = 'V';
-                if (['gm','gds'].includes(p)) unit = 'S';
-                if (['cbd','cbs','cgs','cgd'].includes(p)) unit = 'F';
-                opRows.push({ name: paramMatch[1].toUpperCase(), value: formatVal(paramMatch[2]), unit: unit, note: paramDescription(p) });
+                    opRows.push({ name: name.toUpperCase(), value: formatVal(valStr), unit: unit, note: note });
+                }
             }
-            if (/^-{5,}/.test(l) && opRows.length > 0) inOP = false; 
             continue;
         }
 
         // --- Tabular Data (.print) Parsing ---
-        if (!headerLine && /^\s*(index|freq|time|v\(|vp\(|vm\(|i\(|vdb\()/i.test(l)) {
+        if (!headerLine && /^(index|freq|time|v\(|vp\(|vm\(|i\(|vdb\()/i.test(l)) {
             headerLine = l;
-            colNames = l.trim().split(/\s{2,}|\t+/).map(s => s.trim()).filter(Boolean);
+            colNames = l.split(/\s{2,}|\t+/).map(s => s.trim()).filter(Boolean);
             continue;
         }
-        if (headerLine && /^\s*[\d.eE+\-]/.test(l)) {
-            const vals = l.trim().split(/\s+/);
-            if (vals.length >= 2) printRows.push(vals);
+        if (headerLine && /^[\d.eE+\-]/.test(l)) {
+            const vals = l.split(/\s+/);
+            // Ensure we aren't matching the "--------" separator line
+            if (vals.length >= 2 && !l.includes('---')) {
+                printRows.push(vals);
+            }
         }
-        if (headerLine && printRows.length > 0 && /^\s*$/.test(l)) headerLine = null; 
+        if (headerLine && printRows.length > 0 && l === '') headerLine = null; 
     }
 
     // 3. Build HTML
@@ -676,7 +686,7 @@ function parseAndRender(raw, elapsed) {
             </div>
         </div>`;
         if (printRows.length > maxRows) {
-            html += `<div style="font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-top: 8px;">... Showing first ${maxRows} of ${printRows.length} data points. Check raw output for full dataset.</div>`;
+            html += `<div style="font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-top: 8px; padding: 0 14px 10px;">... Showing first ${maxRows} of ${printRows.length} data points. Check raw output for full dataset.</div>`;
         }
     }
 
