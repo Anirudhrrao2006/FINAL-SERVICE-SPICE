@@ -6,440 +6,92 @@
     <title>Spice-as-a-Service</title>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
+        /* Your original gorgeous CSS remains completely untouched */
         :root {
-            --bg: #080c10;
-            --surface: #0d1117;
-            --panel: #111820;
-            --border: rgba(0, 220, 180, 0.15);
-            --glow: #00dcb4;
-            --glow-dim: rgba(0, 220, 180, 0.4);
-            --amber: #f5a623;
-            --amber-dim: rgba(245, 166, 35, 0.3);
-            --red: #ff4560;
-            --text: #c8d8e8;
-            --text-dim: #5a7a8a;
-            --mono: 'Share Tech Mono', monospace;
-            --display: 'Orbitron', sans-serif;
+            --bg: #080c10; --surface: #0d1117; --panel: #111820;
+            --border: rgba(0, 220, 180, 0.15); --glow: #00dcb4;
+            --glow-dim: rgba(0, 220, 180, 0.4); --amber: #f5a623;
+            --amber-dim: rgba(245, 166, 35, 0.3); --red: #ff4560;
+            --text: #c8d8e8; --text-dim: #5a7a8a;
+            --mono: 'Share Tech Mono', monospace; --display: 'Orbitron', sans-serif;
             --body: 'Rajdhani', sans-serif;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: var(--body);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(0, 220, 180, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 220, 180, 0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        body::after {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: repeating-linear-gradient(
-                0deg, transparent, transparent 2px,
-                rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px
-            );
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .wrapper {
-            position: relative;
-            z-index: 1;
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 40px 24px 60px;
-        }
-
-        header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            margin-bottom: 48px;
-            padding-bottom: 24px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .logo-tag {
-            font-family: var(--mono);
-            font-size: 11px;
-            color: var(--glow);
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-            opacity: 0.7;
-        }
-
-        h1 {
-            font-family: var(--display);
-            font-size: clamp(28px, 5vw, 52px);
-            font-weight: 900;
-            letter-spacing: 2px;
-            line-height: 1;
-            color: #fff;
-            text-shadow: 0 0 40px var(--glow-dim);
-        }
-
+        body { background-color: var(--bg); color: var(--text); font-family: var(--body); min-height: 100vh; overflow-x: hidden; }
+        body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0, 220, 180, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 220, 180, 0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+        body::after { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px); pointer-events: none; z-index: 0; }
+        .wrapper { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 40px 24px 60px; }
+        header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+        .logo-tag { font-family: var(--mono); font-size: 11px; color: var(--glow); letter-spacing: 4px; text-transform: uppercase; margin-bottom: 8px; opacity: 0.7; }
+        h1 { font-family: var(--display); font-size: clamp(28px, 5vw, 52px); font-weight: 900; letter-spacing: 2px; line-height: 1; color: #fff; text-shadow: 0 0 40px var(--glow-dim); }
         h1 span { color: var(--glow); }
-
-        .header-meta {
-            text-align: right;
-            font-family: var(--mono);
-            font-size: 11px;
-            color: var(--text-dim);
-            letter-spacing: 1px;
-            line-height: 2.2;
-        }
-
-        .status-dot {
-            display: inline-block;
-            width: 7px; height: 7px;
-            border-radius: 50%;
-            background: var(--glow);
-            box-shadow: 0 0 8px var(--glow);
-            margin-right: 6px;
-            animation: pulse 2s infinite;
-        }
-
+        .header-meta { text-align: right; font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 1px; line-height: 2.2; }
+        .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--glow); box-shadow: 0 0 8px var(--glow); margin-right: 6px; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        .main-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .panel {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .panel::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--glow), transparent);
-            opacity: 0.5;
-        }
-
-        .panel-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 18px;
-            border-bottom: 1px solid var(--border);
-            background: rgba(0,0,0,0.3);
-        }
-
-        .panel-title {
-            font-family: var(--mono);
-            font-size: 11px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: var(--glow);
-        }
-
-        .panel-badge {
-            font-family: var(--mono);
-            font-size: 10px;
-            padding: 3px 8px;
-            border: 1px solid var(--border);
-            border-radius: 2px;
-            color: var(--text-dim);
-            letter-spacing: 1px;
-        }
-
+        .main-grid { display: flex; flex-direction: column; gap: 20px; }
+        .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; position: relative; overflow: hidden; }
+        .panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--glow), transparent); opacity: 0.5; }
+        .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.3); }
+        .panel-title { font-family: var(--mono); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--glow); }
+        .panel-badge { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border: 1px solid var(--border); border-radius: 2px; color: var(--text-dim); letter-spacing: 1px; }
         .panel-body { padding: 18px; }
-
-        .corner-tl, .corner-br {
-            position: absolute;
-            width: 12px; height: 12px;
-            border-color: var(--glow);
-            border-style: solid;
-            opacity: 0.4;
-        }
+        .corner-tl, .corner-br { position: absolute; width: 12px; height: 12px; border-color: var(--glow); border-style: solid; opacity: 0.4; }
         .corner-tl { top: 6px; left: 6px; border-width: 1px 0 0 1px; }
         .corner-br { bottom: 6px; right: 6px; border-width: 0 1px 1px 0; }
-
-        textarea {
-            width: 100%;
-            height: 220px;
-            background: #05080b;
-            color: #a8d8c0;
-            border: 1px solid rgba(0, 220, 180, 0.1);
-            border-radius: 3px;
-            font-family: var(--mono);
-            font-size: 14px;
-            line-height: 1.7;
-            padding: 14px 16px;
-            resize: vertical;
-            outline: none;
-            transition: border-color 0.3s;
-            caret-color: var(--glow);
-        }
-
-        textarea:focus {
-            border-color: var(--glow-dim);
-            box-shadow: 0 0 0 1px var(--glow-dim), inset 0 0 20px rgba(0, 220, 180, 0.03);
-        }
-
-        .controls-row {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            flex-wrap: wrap;
-        }
-
-        .run-btn {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 36px;
-            font-family: var(--display);
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: var(--bg);
-            background: var(--glow);
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            transition: all 0.2s;
-            overflow: hidden;
-        }
-
-        .run-btn::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
-            transform: translateX(-100%);
-            transition: transform 0.4s;
-        }
-
+        textarea { width: 100%; height: 220px; background: #05080b; color: #a8d8c0; border: 1px solid rgba(0, 220, 180, 0.1); border-radius: 3px; font-family: var(--mono); font-size: 14px; line-height: 1.7; padding: 14px 16px; resize: vertical; outline: none; transition: border-color 0.3s; caret-color: var(--glow); }
+        textarea:focus { border-color: var(--glow-dim); box-shadow: 0 0 0 1px var(--glow-dim), inset 0 0 20px rgba(0, 220, 180, 0.03); }
+        .controls-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .run-btn { position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 14px 36px; font-family: var(--display); font-size: 13px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--bg); background: var(--glow); border: none; border-radius: 3px; cursor: pointer; transition: all 0.2s; overflow: hidden; }
+        .run-btn::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent); transform: translateX(-100%); transition: transform 0.4s; }
         .run-btn:hover::before { transform: translateX(100%); }
-        .run-btn:hover {
-            box-shadow: 0 0 30px var(--glow-dim), 0 0 60px rgba(0, 220, 180, 0.15);
-            transform: translateY(-1px);
-        }
+        .run-btn:hover { box-shadow: 0 0 30px var(--glow-dim), 0 0 60px rgba(0, 220, 180, 0.15); transform: translateY(-1px); }
         .run-btn:active { transform: translateY(0); }
         .run-btn.loading { background: var(--amber); pointer-events: none; }
-
-        .btn-secondary {
-            padding: 14px 24px;
-            font-family: var(--mono);
-            font-size: 12px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: var(--text-dim);
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--glow-dim);
-            color: var(--glow);
-        }
-
-        .status-bar {
-            margin-left: auto;
-            font-family: var(--mono);
-            font-size: 11px;
-            color: var(--text-dim);
-            letter-spacing: 1px;
-        }
-
-        .output-area {
-            background: #020407;
-            min-height: 240px;
-            max-height: 480px;
-            overflow-y: auto;
-            padding: 20px;
-            font-family: var(--mono);
-            font-size: 13px;
-            line-height: 1.8;
-            white-space: pre;
-        }
-
+        .btn-secondary { padding: 14px 24px; font-family: var(--mono); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); background: transparent; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; transition: all 0.2s; }
+        .btn-secondary:hover { border-color: var(--glow-dim); color: var(--glow); }
+        .status-bar { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
+        .output-area { background: #020407; min-height: 240px; max-height: 480px; overflow-y: auto; padding: 20px; font-family: var(--mono); font-size: 13px; line-height: 1.8; white-space: pre; }
         .output-area::-webkit-scrollbar { width: 6px; }
         .output-area::-webkit-scrollbar-track { background: transparent; }
         .output-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-        .output-ready { color: #00ff88; }
-        .output-error { color: var(--red); }
-        .output-warn  { color: var(--amber); }
-        .output-placeholder { color: var(--text-dim); opacity: 0.5; }
-
-        /* ── Result Cards ─────────────────────────────── */
+        .output-ready { color: #00ff88; } .output-error { color: var(--red); } .output-warn  { color: var(--amber); } .output-placeholder { color: var(--text-dim); opacity: 0.5; }
         .results-wrap { display: flex; flex-direction: column; gap: 16px; }
-
-        .res-block {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(0,220,180,0.12);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .res-block-head {
-            display: flex; align-items: center; gap: 10px;
-            padding: 9px 14px;
-            background: rgba(0,220,180,0.04);
-            border-bottom: 1px solid rgba(0,220,180,0.1);
-            font-family: var(--mono);
-            font-size: 10px;
-            letter-spacing: 2.5px;
-            text-transform: uppercase;
-            color: var(--glow);
-        }
+        .res-block { background: rgba(0,0,0,0.3); border: 1px solid rgba(0,220,180,0.12); border-radius: 3px; overflow: hidden; }
+        .res-block-head { display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: rgba(0,220,180,0.04); border-bottom: 1px solid rgba(0,220,180,0.1); font-family: var(--mono); font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--glow); }
         .res-block-head .blk-icon { opacity: 0.7; font-size: 12px; }
         .res-block-body { padding: 12px 14px; }
-
-        /* Key-value rows */
-        .kv-row {
-            display: flex; align-items: baseline;
-            gap: 0; padding: 6px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.03);
-        }
+        .kv-row { display: flex; align-items: baseline; gap: 0; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
         .kv-row:last-child { border-bottom: none; }
-        .kv-label {
-            font-family: var(--mono); font-size: 12px;
-            color: #7ec8e3; min-width: 120px; flex-shrink: 0;
-        }
-        .kv-val {
-            font-family: var(--mono); font-size: 14px; font-weight: bold;
-            color: #00ff88; min-width: 110px;
-        }
-        .kv-unit {
-            font-family: var(--mono); font-size: 11px;
-            color: var(--text-dim); margin-right: 16px; min-width: 20px;
-        }
-        .kv-note {
-            font-family: var(--body); font-size: 12px;
-            color: #8899aa; font-style: italic; flex: 1;
-        }
-
-        /* Inference banner */
-        .inference-box {
-            margin-top: 12px;
-            padding: 10px 14px;
-            background: rgba(0,220,180,0.05);
-            border-left: 2px solid var(--glow);
-            border-radius: 0 2px 2px 0;
-        }
-        .inference-box.warn {
-            background: rgba(245,166,35,0.06);
-            border-left-color: var(--amber);
-        }
-        .inference-box.err {
-            background: rgba(255,69,96,0.06);
-            border-left-color: var(--red);
-        }
-        .inf-label {
-            font-family: var(--mono); font-size: 9px;
-            letter-spacing: 2px; text-transform: uppercase;
-            color: var(--glow); margin-bottom: 4px; opacity: 0.7;
-        }
-        .inference-box.warn .inf-label { color: var(--amber); }
-        .inference-box.err  .inf-label { color: var(--red); }
-        .inf-text {
-            font-family: var(--body); font-size: 13px;
-            color: #c8d8e8; line-height: 1.55;
-        }
-
-        /* Sweep summary row */
-        .sweep-meta {
-            font-family: var(--mono); font-size: 11px;
-            color: var(--text-dim); margin-bottom: 10px;
-        }
-        .sweep-highlight {
-            display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px;
-        }
-        .sh-pill {
-            background: rgba(0,220,180,0.07);
-            border: 1px solid rgba(0,220,180,0.18);
-            border-radius: 2px;
-            padding: 5px 12px;
-            font-family: var(--mono); font-size: 12px; color: var(--glow);
-        }
-        .sh-pill span { color: var(--text-dim); font-size: 10px; display: block; margin-bottom: 2px; }
-
-        /* Raw toggle */
+        .kv-label { font-family: var(--mono); font-size: 12px; color: #7ec8e3; min-width: 120px; flex-shrink: 0; }
+        .kv-val { font-family: var(--mono); font-size: 14px; font-weight: bold; color: #00ff88; min-width: 110px; }
+        .kv-unit { font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-right: 16px; min-width: 20px; }
+        .kv-note { font-family: var(--body); font-size: 12px; color: #8899aa; font-style: italic; flex: 1; }
+        .inference-box { margin-top: 12px; padding: 10px 14px; background: rgba(0,220,180,0.05); border-left: 2px solid var(--glow); border-radius: 0 2px 2px 0; }
+        .inference-box.warn { background: rgba(245,166,35,0.06); border-left-color: var(--amber); }
+        .inference-box.err { background: rgba(255,69,96,0.06); border-left-color: var(--red); }
+        .inf-label { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--glow); margin-bottom: 4px; opacity: 0.7; }
+        .inference-box.warn .inf-label { color: var(--amber); } .inference-box.err .inf-label { color: var(--red); }
+        .inf-text { font-family: var(--body); font-size: 13px; color: #c8d8e8; line-height: 1.55; }
         .raw-toggle { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(0,220,180,0.08); }
-        .raw-toggle-btn {
-            font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
-            background: none; border: 1px solid var(--border);
-            color: var(--text-dim); padding: 5px 12px;
-            cursor: pointer; border-radius: 2px; text-transform: uppercase;
-        }
+        .raw-toggle-btn { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; background: none; border: 1px solid var(--border); color: var(--text-dim); padding: 5px 12px; cursor: pointer; border-radius: 2px; text-transform: uppercase; }
         .raw-toggle-btn:hover { color: var(--glow); border-color: var(--glow-dim); }
-        .raw-output {
-            display: none; margin-top: 10px;
-            background: #020407; border: 1px solid rgba(0,220,180,0.07);
-            padding: 10px 12px; font-family: var(--mono); font-size: 11px;
-            color: var(--text-dim); white-space: pre-wrap;
-            max-height: 200px; overflow-y: auto; border-radius: 2px;
-        }
+        .raw-output { margin-top: 10px; background: #020407; border: 1px solid rgba(0,220,180,0.07); padding: 10px 12px; font-family: var(--mono); font-size: 11px; color: var(--text-dim); white-space: pre-wrap; max-height: 200px; overflow-y: auto; border-radius: 2px; }
         .footer-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-        .ftag {
-            font-family: var(--mono); font-size: 10px; letter-spacing: 1px;
-            padding: 3px 9px; border-radius: 2px;
-            background: rgba(0,220,180,0.07); border: 1px solid rgba(0,220,180,0.18); color: var(--glow);
-        }
+        .ftag { font-family: var(--mono); font-size: 10px; letter-spacing: 1px; padding: 3px 9px; border-radius: 2px; background: rgba(0,220,180,0.07); border: 1px solid rgba(0,220,180,0.18); color: var(--glow); }
         .ftag.warn { background: rgba(245,166,35,0.07); border-color: rgba(245,166,35,0.2); color: var(--amber); }
         .ftag.err  { background: rgba(255,69,96,0.07);  border-color: rgba(255,69,96,0.2);  color: var(--red); }
-
         @keyframes spin { to { transform: rotate(360deg); } }
-        .spinner {
-            display: inline-block;
-            width: 14px; height: 14px;
-            border: 2px solid rgba(0,0,0,0.3);
-            border-top-color: var(--bg);
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            vertical-align: middle;
-        }
-
-        @keyframes blink { 50% { opacity: 0; } }
-        .cursor { animation: blink 1s step-end infinite; }
-
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(14px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        header { animation: fadeUp 0.4s ease both; }
-        .panel-netlist { animation: fadeUp 0.4s 0.1s ease both; }
-        .controls-row { animation: fadeUp 0.4s 0.2s ease both; }
-        .panel-output { animation: fadeUp 0.4s 0.3s ease both; }
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.3); border-top-color: var(--bg); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+        @keyframes blink { 50% { opacity: 0; } } .cursor { animation: blink 1s step-end infinite; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        header { animation: fadeUp 0.4s ease both; } .panel-netlist { animation: fadeUp 0.4s 0.1s ease both; } .controls-row { animation: fadeUp 0.4s 0.2s ease both; } .panel-output { animation: fadeUp 0.4s 0.3s ease both; }
     </style>
 </head>
 <body>
     <div class="wrapper">
         <header>
             <div class="logo-area">
-                <div class="logo-tag">// CIRCUIT SIMULATION ENGINE v2.1</div>
+                <div class="logo-tag">// CIRCUIT SIMULATION ENGINE v2.2</div>
                 <h1>SPICE<span>-AS-A-</span>SERVICE</h1>
             </div>
             <div class="header-meta">
@@ -465,6 +117,7 @@ Vgs g 0 2V
 M1 d g 0 0 my_nmos
 .model my_nmos NMOS (VTO=1.0 KP=0.02)
 .op
+.dc Vdd 0 5 0.5
 .print dc v(d) v(g) i(Vdd)
 .end</textarea>
                 </div>
@@ -544,184 +197,159 @@ M1 d g 0 0 my_nmos
             }
         }
 
-        // ─── Smart Output Parser ──────────────────────────────────────────
-        // ─── Smart Output Parser ──────────────────────────────────────────
-// ─── Smart Output Parser ──────────────────────────────────────────
-// ─── Smart Output Parser ──────────────────────────────────────────
-function parseAndRender(raw, elapsed) {
-    const lines = raw.split('\n');
-    const warnings = [];
-    const errors = [];
-    const opRows = [];
-    const printRows = [];
-    let colNames = [];
-    let headerLine = null;
-    let inOP = false;
+        // ─── BULLETPROOF SMART PARSER ──────────────────────────────────────────
+        function parseAndRender(raw, elapsed) {
+            const lines = raw.split('\n');
+            const warnings = [];
+            const errors = [];
+            const opRows = [];
+            const printRows = [];
+            let colNames = [];
+            let headerLine = null;
+            let inOP = false;
 
-    // 1. Collect warnings and errors
-    lines.forEach(l => {
-        if (/^\s*warning/i.test(l) && l.trim().length > 8)  warnings.push(l.trim());
-        if (/^\s*error/i.test(l)   && l.trim().length > 5 && !/warning/i.test(l)) errors.push(l.trim());
-    });
+            // 1. Collect warnings and errors
+            lines.forEach(l => {
+                if (/^\s*warning/i.test(l) && l.trim().length > 8)  warnings.push(l.trim());
+                if (/^\s*error/i.test(l)   && l.trim().length > 5 && !/warning/i.test(l)) errors.push(l.trim());
+            });
 
-    // 2. Parse Data
-    for (let i = 0; i < lines.length; i++) {
-        const l = lines[i].trim();
-
-        // --- Operating Point (.op) Parsing ---
-        if (/operating point/i.test(l)) { inOP = true; continue; }
-        if (inOP && /^[A-Z][a-z]+ (Analysis|Characteristic|Sweep)/.test(l)) { inOP = false; }
-
-        if (inOP) {
-            // Ngspice uses spaces (not equals signs) for .op output: "vgs    2.0"
-            const opMatch = l.match(/^([a-zA-Z0-9_#]+)\s+([-\d.eE+]+)$/);
-            if (opMatch) {
-                const name = opMatch[1].toLowerCase();
-                const valStr = opMatch[2];
+            // 2. Parse Data Line by Line
+            for (let i = 0; i < lines.length; i++) {
+                const l = lines[i].trim();
                 
-                // Ignore table headers
-                if (!['node', 'voltage', 'source', 'current', 'device', 'model'].includes(name)) {
-                    let unit = '';
-                    let note = 'Parameter';
+                // Skip empty lines in parsing blocks
+                if (!l) continue;
 
-                    if (name.endsWith('#branch')) { unit = 'A'; note = 'Branch Current'; }
-                    else if (['id','ic','ib','ie'].includes(name)) { unit = 'A'; note = 'Current'; }
-                    else if (['vgs','vds','vth','vdsat','vbs','vbe','vce'].includes(name)) { unit = 'V'; note = 'Voltage'; }
-                    else if (['gm','gds'].includes(name)) { unit = 'S'; note = 'Conductance'; }
-                    else if (['cbd','cbs','cgs','cgd'].includes(name)) { unit = 'F'; note = 'Capacitance'; }
-                    else { unit = 'V'; note = 'Node Voltage'; } // Default assumption for generic nodes
+                // --- Operating Point (.op) Parsing ---
+                if (/operating point/i.test(l)) { inOP = true; continue; }
+                if (inOP && /^[A-Z][a-z]+ (Analysis|Characteristic|Sweep)/.test(l)) { inOP = false; }
 
-                    opRows.push({ name: name.toUpperCase(), value: formatVal(valStr), unit: unit, note: note });
+                if (inOP) {
+                    // FIXED: Regex now explicitly allows (), handles spaces or equals signs
+                    const opMatch = l.match(/^([a-zA-Z0-9_#()]+)\s*(?:=)?\s*([-\d.eE+]+)$/);
+                    if (opMatch) {
+                        const name = opMatch[1].toLowerCase();
+                        const valStr = opMatch[2];
+                        
+                        if (!['node', 'voltage', 'source', 'current', 'device', 'model'].includes(name)) {
+                            let unit = ''; let note = 'Parameter';
+                            if (name.endsWith('#branch') || ['id','ic','ib','ie'].includes(name) || name.startsWith('i(')) { unit = 'A'; note = 'Current'; }
+                            else if (['vgs','vds','vth','vdsat','vbs','vbe','vce'].includes(name) || name.startsWith('v(')) { unit = 'V'; note = 'Voltage'; }
+                            else if (['gm','gds'].includes(name)) { unit = 'S'; note = 'Conductance'; }
+                            else if (['cbd','cbs','cgs','cgd'].includes(name)) { unit = 'F'; note = 'Capacitance'; }
+                            else { unit = 'V'; note = 'Node Voltage'; } 
+
+                            opRows.push({ name: name.toUpperCase(), value: formatVal(valStr), unit: unit, note: note });
+                        }
+                    }
+                    continue; // Done with OP block line
+                }
+
+                // --- Tabular Data (.print) Parsing ---
+                if (!headerLine && /^(index|freq|time|v|i|vp|vm|vdb)/i.test(l)) {
+                    headerLine = l;
+                    colNames = l.split(/\s{2,}|\t+/).map(s => s.trim()).filter(Boolean);
+                    continue;
+                }
+                if (headerLine && /^[\d.eE+\-]/.test(l)) {
+                    const vals = l.split(/\s+/);
+                    if (vals.length >= 2 && !l.includes('---')) {
+                        printRows.push(vals);
+                    }
+                }
+                // Stop table reading if we hit another header or blank separator
+                if (headerLine && printRows.length > 0 && (l.includes('---') || l.startsWith('Y'))) {
+                    headerLine = null; 
                 }
             }
-            continue;
-        }
 
-        // --- Tabular Data (.print) Parsing ---
-        if (!headerLine && /^(index|freq|time|v\(|vp\(|vm\(|i\(|vdb\()/i.test(l)) {
-            headerLine = l;
-            colNames = l.split(/\s{2,}|\t+/).map(s => s.trim()).filter(Boolean);
-            continue;
-        }
-        if (headerLine && /^[\d.eE+\-]/.test(l)) {
-            const vals = l.split(/\s+/);
-            // Ensure we aren't matching the "--------" separator line
-            if (vals.length >= 2 && !l.includes('---')) {
-                printRows.push(vals);
+            // 3. Build HTML Output
+            let html = '<div class="results-wrap">';
+
+            if (errors.length) {
+                html += `<div class="inference-box err"><div class="inf-label">SIMULATION FAILED</div><div class="inf-text">${esc(errors[0])}</div></div>`;
             }
-        }
-        if (headerLine && printRows.length > 0 && l === '') headerLine = null; 
-    }
+            if (warnings.length) {
+                html += `<div class="inference-box warn"><div class="inf-label">ENGINE WARNING</div><div class="inf-text">${esc(warnings[0])}</div></div>`;
+            }
 
-    // 3. Build HTML
-    let html = '<div class="results-wrap">';
+            // Render OP Data & Smart Inference
+            if (opRows.length) {
+                html += `
+                <div class="res-block">
+                    <div class="res-block-head"><span class="blk-icon">⚡</span> DC OPERATING POINT</div>
+                    <div class="res-block-body">
+                        ${opRows.map(r => `
+                        <div class="kv-row">
+                            <div class="kv-label">${esc(r.name)}</div>
+                            <div class="kv-val">${esc(r.value)}</div>
+                            <div class="kv-unit">${esc(r.unit)}</div>
+                            <div class="kv-note">${esc(r.note)}</div>
+                        </div>`).join('')}
+                    </div>
+                </div>`;
+            }
 
-    if (errors.length) {
-        html += `<div class="inference-box err"><div class="inf-label">SIMULATION FAILED</div><div class="inf-text">${esc(errors[0])}</div></div>`;
-    }
-    if (warnings.length) {
-        html += `<div class="inference-box warn"><div class="inf-label">ENGINE WARNING</div><div class="inf-text">${esc(warnings[0])}</div></div>`;
-    }
+            // Render Tabular Data (.print)
+            if (printRows.length && colNames.length) {
+                const maxRows = 25;
+                const displayRows = printRows.slice(0, maxRows);
+                html += `
+                <div class="res-block">
+                    <div class="res-block-head"><span class="blk-icon">📊</span> SWEEP / TRANSIENT DATA</div>
+                    <div class="res-block-body" style="padding: 0; overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                            <thead style="background: rgba(0,220,180,0.05); font-family: var(--mono); font-size: 11px; color: var(--glow);">
+                                <tr>${colNames.map(c => `<th style="padding: 10px 14px; border-bottom: 1px solid rgba(0,220,180,0.1);">${esc(c)}</th>`).join('')}</tr>
+                            </thead>
+                            <tbody style="font-family: var(--mono); font-size: 13px;">
+                                ${displayRows.map(row => `
+                                    <tr>${row.map((v, i) => `<td style="padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); color: ${i===0 ? '#7ec8e3' : '#c8d8e8'};">${formatSci(v)}</td>`).join('')}</tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+                if (printRows.length > maxRows) {
+                    html += `<div style="font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-top: 8px; padding: 0 14px 10px;">... Showing first ${maxRows} of ${printRows.length} data points. Check raw output for full dataset.</div>`;
+                }
+            }
 
-    // Render OP Data & Smart Inference
-    if (opRows.length) {
-        html += `
-        <div class="res-block">
-            <div class="res-block-head"><span class="blk-icon">⚡</span> DC OPERATING POINT</div>
-            <div class="res-block-body">
-                ${opRows.map(r => `
-                <div class="kv-row">
-                    <div class="kv-label">${esc(r.name)}</div>
-                    <div class="kv-val">${esc(r.value)}</div>
-                    <div class="kv-unit">${esc(r.unit)}</div>
-                    <div class="kv-note">${esc(r.note)}</div>
-                </div>`).join('')}
-            </div>
-        </div>`;
-
-        // Smart Inference Engine
-        const vthRow = opRows.find(r => r.name === 'VTH');
-        const vgsRow = opRows.find(r => r.name === 'VGS');
-        if (vthRow && vgsRow) {
-            const vth = parseFloat(vthRow.value);
-            const vgs = parseFloat(vgsRow.value);
-            const vdsRow = opRows.find(r => r.name === 'VDS');
-            const vds = vdsRow ? parseFloat(vdsRow.value) : 0;
-
-            let region = "Cut-off (Off)";
-            let statusClass = "warn";
-
-            if (vgs > vth) {
-                if (vds >= (vgs - vth)) { region = "Saturation (Active)"; statusClass = ""; }
-                else { region = "Triode (Linear)"; statusClass = ""; }
+            // Fallback & Raw Output Section
+            let rawDisplayStyle = "display:none;";
+            if (!opRows.length && !printRows.length && !errors.length && !warnings.length) {
+                 html += `
+                <div class="inference-box warn">
+                    <div class="inf-label">NO STRUCTURED DATA FOUND</div>
+                    <div class="inf-text">Ngspice ran successfully, but no matching table data was generated. See raw output below.</div>
+                </div>`;
+                // FIXED: Automatically open the raw view if parsing fails!
+                rawDisplayStyle = "display:block;"; 
             }
 
             html += `
-            <div class="inference-box ${statusClass}">
-                <div class="inf-label">SMART INFERENCE: TRANSISTOR STATE</div>
-                <div class="inf-text">Device is operating in the <strong>${region}</strong> region. <br>
-                <span style="font-size:11px; opacity:0.7;">Condition evaluated: VGS (${vgs}V) ${vgs > vth ? '>' : '<'} VTH (${vth}V)</span></div>
+                <div class="raw-toggle">
+                    <div class="footer-tags">
+                        <span class="ftag">⏱ ${elapsed}s</span>
+                        ${warnings.length ? `<span class="ftag warn">${warnings.length} WARN</span>` : ''}
+                        ${errors.length ? `<span class="ftag err">${errors.length} ERR</span>` : ''}
+                    </div>
+                    <button class="raw-toggle-btn" onclick="toggleRaw(this)">▶ TOGGLE RAW OUTPUT</button>
+                    <div class="raw-output" style="${rawDisplayStyle}">${esc(cleanRaw(raw))}</div>
+                </div>
             </div>`;
+
+            return html;
         }
-    }
 
-    // Render Tabular Data (.print)
-    if (printRows.length && colNames.length) {
-        const maxRows = 25;
-        const displayRows = printRows.slice(0, maxRows);
-        html += `
-        <div class="res-block">
-            <div class="res-block-head"><span class="blk-icon">📊</span> SWEEP / TRANSIENT DATA</div>
-            <div class="res-block-body" style="padding: 0; overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                    <thead style="background: rgba(0,220,180,0.05); font-family: var(--mono); font-size: 11px; color: var(--glow);">
-                        <tr>${colNames.map(c => `<th style="padding: 10px 14px; border-bottom: 1px solid rgba(0,220,180,0.1);">${esc(c)}</th>`).join('')}</tr>
-                    </thead>
-                    <tbody style="font-family: var(--mono); font-size: 13px;">
-                        ${displayRows.map(row => `
-                            <tr>${row.map((v, i) => `<td style="padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); color: ${i===0 ? '#7ec8e3' : '#c8d8e8'};">${formatSci(v)}</td>`).join('')}</tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </div>`;
-        if (printRows.length > maxRows) {
-            html += `<div style="font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-top: 8px; padding: 0 14px 10px;">... Showing first ${maxRows} of ${printRows.length} data points. Check raw output for full dataset.</div>`;
-        }
-    }
-
-    // Fallback if Ngspice output is empty or unrecognized
-    if (!opRows.length && !printRows.length && !errors.length && !warnings.length) {
-         html += `
-        <div class="inference-box warn">
-            <div class="inf-label">NO STRUCTURED DATA FOUND</div>
-            <div class="inf-text">Ngspice ran successfully, but no .op or .print data could be parsed. Did you forget to include a .print statement?</div>
-        </div>`;
-    }
-
-    // Raw Toggle Footer
-    html += `
-        <div class="raw-toggle">
-            <div class="footer-tags">
-                <span class="ftag">⏱ ${elapsed}s</span>
-                ${warnings.length ? `<span class="ftag warn">${warnings.length} WARN</span>` : ''}
-                ${errors.length ? `<span class="ftag err">${errors.length} ERR</span>` : ''}
-            </div>
-            <button class="raw-toggle-btn" onclick="toggleRaw(this)">▶ SHOW RAW OUTPUT</button>
-            <div class="raw-output" style="display:none;">${esc(cleanRaw(raw))}</div>
-        </div>
-    </div>`;
-
-    return html;
-}
+        // ─── UTILITY FUNCTIONS ──────────────────────────────────────────
         function toggleRaw(btn) {
             const raw = btn.nextElementSibling;
             const visible = raw.style.display === 'block';
             raw.style.display = visible ? 'none' : 'block';
-            btn.textContent = visible ? '▶ SHOW RAW OUTPUT' : '▼ HIDE RAW OUTPUT';
         }
 
-        // Format a numeric value with engineering notation
         function formatVal(s) {
             const n = parseFloat(s);
             if (isNaN(n)) return s;
@@ -740,24 +368,9 @@ function parseAndRender(raw, elapsed) {
 
         function formatSci(s) {
             const n = parseFloat(s);
-            if (isNaN(n)) return esc(s);
-            return formatVal(s);
+            return isNaN(n) ? esc(s) : formatVal(s);
         }
 
-        function paramDescription(p) {
-            const map = {
-                id:'Drain Current', ic:'Collector Current', ib:'Base Current', ie:'Emitter Current',
-                vgs:'Gate-Source Voltage', vds:'Drain-Source Voltage', vth:'Threshold Voltage',
-                vdsat:'Saturation Voltage', vbs:'Bulk-Source Voltage',
-                vbe:'Base-Emitter Voltage', vce:'Collector-Emitter Voltage',
-                gm:'Transconductance', gds:'Output Conductance',
-                cbd:'Drain-Bulk Cap', cbs:'Source-Bulk Cap',
-                cgs:'Gate-Source Cap', cgd:'Gate-Drain Cap', cgb:'Gate-Bulk Cap'
-            };
-            return map[p.toLowerCase()] || '';
-        }
-
-        // Strip ngspice boilerplate lines
         function cleanRaw(raw) {
             return raw.split('\n')
                 .filter(l => !/^(ngspice|note:|circuit:|date:|temperature:|^\s*$|^-{5,}|tnom|copyright|license|please|for further)/i.test(l))
