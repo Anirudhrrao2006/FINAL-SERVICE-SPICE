@@ -546,13 +546,16 @@ M1 d g 0 0 my_nmos
 
         // ─── Smart Output Parser ──────────────────────────────────────────
         // ─── Smart Output Parser ──────────────────────────────────────────
+// ─── Smart Output Parser ──────────────────────────────────────────
 function parseAndRender(raw, elapsed) {
     const lines = raw.split('\n');
     const warnings = [];
     const errors = [];
     const opRows = [];
+    const printRows = [];
+    let colNames = [];
+    let headerLine = null;
     let inOP = false;
-    let html = '<div class="results-wrap">'; // Main container
 
     // 1. Collect warnings and errors
     lines.forEach(l => {
@@ -560,20 +563,19 @@ function parseAndRender(raw, elapsed) {
         if (/^\s*error/i.test(l)   && l.trim().length > 5 && !/warning/i.test(l)) errors.push(l.trim());
     });
 
-    // 2. Parse Operating Point (.op)
+    // 2. Parse Data
     for (let i = 0; i < lines.length; i++) {
         const l = lines[i];
+
+        // --- Operating Point (.op) Parsing ---
         if (/operating point/i.test(l)) { inOP = true; continue; }
         if (inOP) {
-            // Voltages
             const vMatch = l.match(/^\s*(v\([^)]+\))\s*=\s*([-\d.eE+]+)/i);
             if (vMatch) { opRows.push({ name: vMatch[1].toUpperCase(), value: formatVal(vMatch[2]), unit: 'V', note: 'Node Voltage' }); continue; }
-            
-            // Currents
+
             const iMatch = l.match(/^\s*(i[dsgbc]*\([^)]+\))\s*=\s*([-\d.eE+]+)/i);
             if (iMatch) { opRows.push({ name: iMatch[1].toUpperCase(), value: formatVal(iMatch[2]), unit: 'A', note: 'Branch Current' }); continue; }
-            
-            // Model Parameters (MOSFETs, Diodes, BJTs)
+
             const paramMatch = l.match(/^\s*([a-z]+)\s*=\s*([-\d.eE+]+)/i);
             if (paramMatch && !['v','i'].includes(paramMatch[1])) {
                 const p = paramMatch[1].toLowerCase();
@@ -582,29 +584,36 @@ function parseAndRender(raw, elapsed) {
                 if (['vgs','vds','vth','vdsat','vbs','vbe','vce'].includes(p)) unit = 'V';
                 if (['gm','gds'].includes(p)) unit = 'S';
                 if (['cbd','cbs','cgs','cgd'].includes(p)) unit = 'F';
-                
                 opRows.push({ name: paramMatch[1].toUpperCase(), value: formatVal(paramMatch[2]), unit: unit, note: paramDescription(p) });
             }
-            if (/^-{5,}/.test(l) && opRows.length > 0) break;
+            if (/^-{5,}/.test(l) && opRows.length > 0) inOP = false; 
+            continue;
         }
+
+        // --- Tabular Data (.print) Parsing ---
+        if (!headerLine && /^\s*(index|freq|time|v\(|vp\(|vm\(|i\(|vdb\()/i.test(l)) {
+            headerLine = l;
+            colNames = l.trim().split(/\s{2,}|\t+/).map(s => s.trim()).filter(Boolean);
+            continue;
+        }
+        if (headerLine && /^\s*[\d.eE+\-]/.test(l)) {
+            const vals = l.trim().split(/\s+/);
+            if (vals.length >= 2) printRows.push(vals);
+        }
+        if (headerLine && printRows.length > 0 && /^\s*$/.test(l)) headerLine = null; 
     }
 
-    // 3. Render the UI
+    // 3. Build HTML
+    let html = '<div class="results-wrap">';
+
     if (errors.length) {
-        html += `<div class="inference-box err">
-                    <div class="inf-label">SIMULATION FAILED</div>
-                    <div class="inf-text">${esc(errors[0])}</div>
-                 </div>`;
+        html += `<div class="inference-box err"><div class="inf-label">SIMULATION FAILED</div><div class="inf-text">${esc(errors[0])}</div></div>`;
     }
-
     if (warnings.length) {
-        html += `<div class="inference-box warn">
-                    <div class="inf-label">ENGINE WARNING</div>
-                    <div class="inf-text">${esc(warnings[0])}</div>
-                 </div>`;
+        html += `<div class="inference-box warn"><div class="inf-label">ENGINE WARNING</div><div class="inf-text">${esc(warnings[0])}</div></div>`;
     }
 
-    // Render Operating Point Data using your beautiful CSS
+    // Render OP Data & Smart Inference
     if (opRows.length) {
         html += `
         <div class="res-block">
@@ -616,45 +625,71 @@ function parseAndRender(raw, elapsed) {
                     <div class="kv-val">${esc(r.value)}</div>
                     <div class="kv-unit">${esc(r.unit)}</div>
                     <div class="kv-note">${esc(r.note)}</div>
-                </div>
-                `).join('')}
+                </div>`).join('')}
             </div>
         </div>`;
+
+        // Smart Inference Engine
+        const vthRow = opRows.find(r => r.name === 'VTH');
+        const vgsRow = opRows.find(r => r.name === 'VGS');
+        if (vthRow && vgsRow) {
+            const vth = parseFloat(vthRow.value);
+            const vgs = parseFloat(vgsRow.value);
+            const vdsRow = opRows.find(r => r.name === 'VDS');
+            const vds = vdsRow ? parseFloat(vdsRow.value) : 0;
+
+            let region = "Cut-off (Off)";
+            let statusClass = "warn";
+
+            if (vgs > vth) {
+                if (vds >= (vgs - vth)) { region = "Saturation (Active)"; statusClass = ""; }
+                else { region = "Triode (Linear)"; statusClass = ""; }
+            }
+
+            html += `
+            <div class="inference-box ${statusClass}">
+                <div class="inf-label">SMART INFERENCE: TRANSISTOR STATE</div>
+                <div class="inf-text">Device is operating in the <strong>${region}</strong> region. <br>
+                <span style="font-size:11px; opacity:0.7;">Condition evaluated: VGS (${vgs}V) ${vgs > vth ? '>' : '<'} VTH (${vth}V)</span></div>
+            </div>`;
+        }
     }
 
-    // 4. SMART INFERENCE ENGINE (Value-Add Feature)
-    // Automatically determine transistor operating regions
-    const vthRow = opRows.find(r => r.name === 'VTH');
-    const vgsRow = opRows.find(r => r.name === 'VGS');
-    const vdsRow = opRows.find(r => r.name === 'VDS');
-    
-    if (vthRow && vgsRow) {
-        const vth = parseFloat(vthRow.value);
-        const vgs = parseFloat(vgsRow.value);
-        const vds = vdsRow ? parseFloat(vdsRow.value) : 0;
-        
-        let region = "Cut-off (Off)";
-        let statusClass = "warn";
-        
-        if (vgs > vth) {
-            if (vds >= (vgs - vth)) {
-                region = "Saturation (Active)";
-                statusClass = ""; // Normal glow
-            } else {
-                region = "Triode (Linear)";
-                statusClass = "";
-            }
-        }
-
+    // Render Tabular Data (.print)
+    if (printRows.length && colNames.length) {
+        const maxRows = 25;
+        const displayRows = printRows.slice(0, maxRows);
         html += `
-        <div class="inference-box ${statusClass}">
-            <div class="inf-label">SMART INFERENCE: TRANSISTOR STATE</div>
-            <div class="inf-text">Device is operating in the <strong>${region}</strong> region. <br>
-            <span style="font-size:11px; opacity:0.7;">Condition evaluated: VGS (${vgs}V) ${vgs > vth ? '>' : '<'} VTH (${vth}V)</span></div>
+        <div class="res-block">
+            <div class="res-block-head"><span class="blk-icon">📊</span> SWEEP / TRANSIENT DATA</div>
+            <div class="res-block-body" style="padding: 0; overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead style="background: rgba(0,220,180,0.05); font-family: var(--mono); font-size: 11px; color: var(--glow);">
+                        <tr>${colNames.map(c => `<th style="padding: 10px 14px; border-bottom: 1px solid rgba(0,220,180,0.1);">${esc(c)}</th>`).join('')}</tr>
+                    </thead>
+                    <tbody style="font-family: var(--mono); font-size: 13px;">
+                        ${displayRows.map(row => `
+                            <tr>${row.map((v, i) => `<td style="padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); color: ${i===0 ? '#7ec8e3' : '#c8d8e8'};">${formatSci(v)}</td>`).join('')}</tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+        if (printRows.length > maxRows) {
+            html += `<div style="font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-top: 8px;">... Showing first ${maxRows} of ${printRows.length} data points. Check raw output for full dataset.</div>`;
+        }
+    }
+
+    // Fallback if Ngspice output is empty or unrecognized
+    if (!opRows.length && !printRows.length && !errors.length && !warnings.length) {
+         html += `
+        <div class="inference-box warn">
+            <div class="inf-label">NO STRUCTURED DATA FOUND</div>
+            <div class="inf-text">Ngspice ran successfully, but no .op or .print data could be parsed. Did you forget to include a .print statement?</div>
         </div>`;
     }
 
-    // 5. Raw Output Toggle Footer
+    // Raw Toggle Footer
     html += `
         <div class="raw-toggle">
             <div class="footer-tags">
@@ -663,9 +698,9 @@ function parseAndRender(raw, elapsed) {
                 ${errors.length ? `<span class="ftag err">${errors.length} ERR</span>` : ''}
             </div>
             <button class="raw-toggle-btn" onclick="toggleRaw(this)">▶ SHOW RAW OUTPUT</button>
-            <div class="raw-output">${esc(cleanRaw(raw))}</div>
+            <div class="raw-output" style="display:none;">${esc(cleanRaw(raw))}</div>
         </div>
-    </div>`; // End results-wrap
+    </div>`;
 
     return html;
 }
