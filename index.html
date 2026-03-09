@@ -293,6 +293,99 @@
         .output-warn  { color: var(--amber); }
         .output-placeholder { color: var(--text-dim); opacity: 0.5; }
 
+        /* Structured output styles */
+        .result-section {
+            margin-bottom: 22px;
+        }
+        .result-section-title {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--glow);
+            border-bottom: 1px solid rgba(0,220,180,0.15);
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+        }
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .result-table th {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            text-align: left;
+            padding: 5px 12px 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .result-table td {
+            font-family: var(--mono);
+            font-size: 13px;
+            padding: 7px 12px 7px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            vertical-align: middle;
+        }
+        .result-table tr:last-child td { border-bottom: none; }
+        .td-name { color: #7ec8e3; }
+        .td-value { color: #00ff88; font-weight: bold; }
+        .td-unit  { color: var(--text-dim); font-size: 11px; }
+        .td-desc  { color: var(--text-dim); font-size: 11px; }
+        .summary-tag {
+            display: inline-block;
+            background: rgba(0,220,180,0.08);
+            border: 1px solid rgba(0,220,180,0.2);
+            border-radius: 2px;
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 2px 8px;
+            margin: 3px 4px 3px 0;
+            color: var(--glow);
+        }
+        .summary-tag.warn { background: rgba(245,166,35,0.08); border-color: rgba(245,166,35,0.2); color: var(--amber); }
+        .summary-tag.err  { background: rgba(255,69,96,0.08);  border-color: rgba(255,69,96,0.2);  color: var(--red); }
+        .raw-toggle {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(0,220,180,0.1);
+        }
+        .raw-toggle-btn {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 2px;
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 5px 12px;
+            cursor: pointer;
+            border-radius: 2px;
+            text-transform: uppercase;
+        }
+        .raw-toggle-btn:hover { color: var(--glow); border-color: var(--glow-dim); }
+        .raw-output {
+            display: none;
+            margin-top: 12px;
+            background: #020407;
+            border: 1px solid rgba(0,220,180,0.07);
+            padding: 12px 14px;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-dim);
+            white-space: pre-wrap;
+            max-height: 220px;
+            overflow-y: auto;
+            border-radius: 2px;
+        }
+        .op-region { color: #ffcc55; }
+        .analysis-info {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+        }
+
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner {
             display: inline-block;
@@ -409,13 +502,7 @@ M1 d g 0 0 my_nmos
                 const elapsed = ((performance.now() - t0) / 1000).toFixed(3);
 
                 if (response.ok) {
-                    const lines = data.output.split('\n');
-                    const html = lines.map(line => {
-                        if (line.match(/error/i)) return `<span class="output-error">${esc(line)}</span>`;
-                        if (line.match(/warning/i)) return `<span class="output-warn">${esc(line)}</span>`;
-                        return `<span class="output-ready">${esc(line)}</span>`;
-                    }).join('\n');
-                    outputArea.innerHTML = html;
+                    outputArea.innerHTML = parseAndRender(data.output, elapsed);
                     statusBar.textContent = `DONE IN ${elapsed}s`;
                     outputBadge.textContent = `SUCCESS · ${elapsed}s`;
                 } else {
@@ -424,13 +511,222 @@ M1 d g 0 0 my_nmos
                     outputBadge.textContent = 'ERROR';
                 }
             } catch (err) {
-                outputArea.innerHTML = `<span class="output-error">✖ CONNECTION REFUSED\n\nCould not reach server at 127.0.0.1:8000\nMake sure Uvicorn is running in your terminal.</span>`;
+                outputArea.innerHTML = `<span class="output-error">✖ CONNECTION REFUSED\n\nCould not reach the simulation server.\nMake sure the backend is running.</span>`;
                 statusBar.textContent = 'NO CONNECTION';
                 outputBadge.textContent = 'OFFLINE';
             } finally {
                 runBtn.classList.remove('loading');
                 btnLabel.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="fill:currentColor"><path d="M3 2l11 6-11 6V2z"/></svg> RUN SIMULATION';
             }
+        }
+
+        // ─── Smart Output Parser ──────────────────────────────────────────
+        function parseAndRender(raw, elapsed) {
+            const lines = raw.split('\n');
+            const sections = [];
+            const warnings = [];
+            const errors = [];
+
+            // Detect analysis types present
+            const hasOP  = /operating point/i.test(raw);
+            const hasDC  = /dc transfer/i.test(raw) || /dc sweep/i.test(raw);
+            const hasAC  = /ac analysis/i.test(raw);
+            const hasTRAN= /transient/i.test(raw);
+
+            // ── Collect warnings and errors ──
+            lines.forEach(l => {
+                if (/^\s*warning/i.test(l) && l.trim().length > 8)  warnings.push(l.trim());
+                if (/^\s*error/i.test(l)   && l.trim().length > 5)  errors.push(l.trim());
+            });
+
+            // ── Parse Operating Point (.op) ──
+            const opRows = [];
+            let inOP = false;
+            for (let i = 0; i < lines.length; i++) {
+                const l = lines[i];
+                if (/operating point/i.test(l)) { inOP = true; continue; }
+                if (inOP) {
+                    // Node voltages: "v(node) = value"
+                    const vMatch = l.match(/^\s*(v\(\S+\))\s*=\s*([\d.eE+\-]+)/i);
+                    if (vMatch) { opRows.push({ name: vMatch[1], value: formatVal(vMatch[2]), unit: 'V', desc: 'Node Voltage' }); continue; }
+                    // Currents: "i(component) = value"
+                    const iMatch = l.match(/^\s*(i[dsgb]?\(\S+\))\s*=\s*([\d.eE+\-]+)/i);
+                    if (iMatch) { opRows.push({ name: iMatch[1], value: formatVal(iMatch[2]), unit: 'A', desc: 'Branch Current' }); continue; }
+                    // MOSFET/BJT model params block (id, vgs, vth etc)
+                    const mosMatch = l.match(/^\s*(id|vgs|vds|vth|vdsat|vbs|vbe|vce|ic|ib|ie|gm|gds|cbd|cbs|cgs|cgd|cgb)\s*=\s*([\d.eE+\-]+)/i);
+                    if (mosMatch) {
+                        const paramUnits = { id:'A', ic:'A', ib:'A', ie:'A', gm:'S', gds:'S', vgs:'V', vds:'V', vth:'V', vdsat:'V', vbs:'V', vbe:'V', vce:'V', cbd:'F', cbs:'F', cgs:'F', cgd:'F', cgb:'F' };
+                        const pname = mosMatch[1].toLowerCase();
+                        opRows.push({ name: mosMatch[1].toUpperCase(), value: formatVal(mosMatch[2]), unit: paramUnits[pname]||'', desc: paramDescription(pname) });
+                        continue;
+                    }
+                    if (/^-{5,}/.test(l) && opRows.length > 0) break;
+                }
+            }
+
+            // ── Parse .print / tabular output ──
+            const printRows = [];
+            let headerLine = null, colNames = [];
+            for (let i = 0; i < lines.length; i++) {
+                const l = lines[i];
+                // Detect header row (contains column names like v(out), vp(out), freq, time...)
+                if (!headerLine && /^\s*(index|freq|time|v\(|vp\(|vm\(|i\(|vdb\()/i.test(l)) {
+                    headerLine = l;
+                    colNames = l.trim().split(/\s{2,}|\t+/).map(s => s.trim()).filter(Boolean);
+                    continue;
+                }
+                if (headerLine && /^\s*[\d.eE+\-]/.test(l)) {
+                    const vals = l.trim().split(/\s+/);
+                    if (vals.length >= 2) {
+                        printRows.push(vals);
+                    }
+                }
+                // Stop if blank line after data
+                if (headerLine && printRows.length > 0 && /^\s*$/.test(l)) break;
+            }
+
+            // ── Parse DC transfer curve summary ──
+            const dcSummary = [];
+            for (let i = 0; i < lines.length; i++) {
+                const m = lines[i].match(/^\s*(v\(\S+\)|i\(\S+\))\s*=\s*([\d.eE+\-]+)/i);
+                if (m && !inOP) dcSummary.push({ name: m[1], value: formatVal(m[2]) });
+            }
+
+            // ── BUILD HTML ──
+            let html = '';
+
+            // Errors first
+            if (errors.length) {
+                html += `<div class="result-section">
+                    <div class="result-section-title">⚠ Errors</div>
+                    ${errors.map(e => `<div style="color:var(--red);font-family:var(--mono);font-size:12px;margin-bottom:4px;">✖ ${esc(e)}</div>`).join('')}
+                </div>`;
+            }
+
+            // Warnings
+            if (warnings.length) {
+                html += `<div class="result-section">
+                    <div class="result-section-title">⚡ Warnings</div>
+                    ${warnings.map(w => `<div style="color:var(--amber);font-family:var(--mono);font-size:12px;margin-bottom:4px;">△ ${esc(w)}</div>`).join('')}
+                </div>`;
+            }
+
+            // Operating Point Results
+            if (opRows.length) {
+                html += `<div class="result-section">
+                    <div class="result-section-title">◉ DC Operating Point</div>
+                    <table class="result-table">
+                        <thead><tr>
+                            <th>Parameter</th><th>Value</th><th>Unit</th><th>Description</th>
+                        </tr></thead>
+                        <tbody>
+                            ${opRows.map(r => `<tr>
+                                <td class="td-name">${esc(r.name)}</td>
+                                <td class="td-value">${esc(r.value)}</td>
+                                <td class="td-unit">${esc(r.unit)}</td>
+                                <td class="td-desc">${esc(r.desc)}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>`;
+            }
+
+            // .print tabular results
+            if (printRows.length && colNames.length) {
+                const analysisLabel = hasAC ? 'AC Sweep Results' : hasTRAN ? 'Transient Analysis' : 'DC Sweep Results';
+                const maxRows = 30;
+                const displayRows = printRows.slice(0, maxRows);
+                html += `<div class="result-section">
+                    <div class="result-section-title">📊 ${analysisLabel}</div>
+                    <div class="analysis-info">${printRows.length} data points${printRows.length > maxRows ? ` · showing first ${maxRows}` : ''}</div>
+                    <table class="result-table">
+                        <thead><tr>${colNames.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+                        <tbody>
+                            ${displayRows.map(row =>
+                                `<tr>${row.map((v,i) => `<td class="${i===0?'td-name':'td-value'}">${formatSci(v)}</td>`).join('')}</tr>`
+                            ).join('')}
+                        </tbody>
+                    </table>
+                    ${printRows.length > maxRows ? `<div style="color:var(--text-dim);font-family:var(--mono);font-size:11px;margin-top:8px;">... ${printRows.length - maxRows} more rows in raw output</div>` : ''}
+                </div>`;
+            }
+
+            // Summary tags
+            const tags = [];
+            if (hasOP)   tags.push('<span class="summary-tag">OP POINT</span>');
+            if (hasDC)   tags.push('<span class="summary-tag">DC SWEEP</span>');
+            if (hasAC)   tags.push('<span class="summary-tag">AC ANALYSIS</span>');
+            if (hasTRAN) tags.push('<span class="summary-tag">TRANSIENT</span>');
+            tags.push(`<span class="summary-tag">${elapsed}s</span>`);
+            if (warnings.length) tags.push(`<span class="summary-tag warn">⚡ ${warnings.length} WARNING${warnings.length>1?'S':''}</span>`);
+            if (errors.length)   tags.push(`<span class="summary-tag err">✖ ${errors.length} ERROR${errors.length>1?'S':''}</span>`);
+
+            if (!opRows.length && !printRows.length && !errors.length) {
+                // Fallback: nothing structured found, show cleaned raw
+                html += `<div class="result-section">
+                    <div class="result-section-title">Output</div>
+                    <div style="font-family:var(--mono);font-size:12px;color:#a8d8c0;white-space:pre-wrap;">${cleanRaw(raw)}</div>
+                </div>`;
+            }
+
+            // Raw output collapsible
+            html += `<div class="raw-toggle">
+                <div style="margin-bottom:8px;">${tags.join('')}</div>
+                <button class="raw-toggle-btn" onclick="toggleRaw(this)">▶ SHOW RAW OUTPUT</button>
+                <div class="raw-output">${esc(raw)}</div>
+            </div>`;
+
+            return html;
+        }
+
+        function toggleRaw(btn) {
+            const raw = btn.nextElementSibling;
+            const visible = raw.style.display === 'block';
+            raw.style.display = visible ? 'none' : 'block';
+            btn.textContent = visible ? '▶ SHOW RAW OUTPUT' : '▼ HIDE RAW OUTPUT';
+        }
+
+        // Format a numeric value with engineering notation
+        function formatVal(s) {
+            const n = parseFloat(s);
+            if (isNaN(n)) return s;
+            const abs = Math.abs(n);
+            if (abs === 0) return '0';
+            if (abs >= 1e9)  return (n/1e9).toPrecision(4)  + ' G';
+            if (abs >= 1e6)  return (n/1e6).toPrecision(4)  + ' M';
+            if (abs >= 1e3)  return (n/1e3).toPrecision(4)  + ' k';
+            if (abs >= 1)    return n.toPrecision(5);
+            if (abs >= 1e-3) return (n*1e3).toPrecision(4)  + ' m';
+            if (abs >= 1e-6) return (n*1e6).toPrecision(4)  + ' μ';
+            if (abs >= 1e-9) return (n*1e9).toPrecision(4)  + ' n';
+            if (abs >= 1e-12)return (n*1e12).toPrecision(4) + ' p';
+            return n.toExponential(3);
+        }
+
+        function formatSci(s) {
+            const n = parseFloat(s);
+            if (isNaN(n)) return esc(s);
+            return formatVal(s);
+        }
+
+        function paramDescription(p) {
+            const map = {
+                id:'Drain Current', ic:'Collector Current', ib:'Base Current', ie:'Emitter Current',
+                vgs:'Gate-Source Voltage', vds:'Drain-Source Voltage', vth:'Threshold Voltage',
+                vdsat:'Saturation Voltage', vbs:'Bulk-Source Voltage',
+                vbe:'Base-Emitter Voltage', vce:'Collector-Emitter Voltage',
+                gm:'Transconductance', gds:'Output Conductance',
+                cbd:'Drain-Bulk Cap', cbs:'Source-Bulk Cap',
+                cgs:'Gate-Source Cap', cgd:'Gate-Drain Cap', cgb:'Gate-Bulk Cap'
+            };
+            return map[p.toLowerCase()] || '';
+        }
+
+        // Strip ngspice boilerplate lines
+        function cleanRaw(raw) {
+            return raw.split('\n')
+                .filter(l => !/^(ngspice|note:|circuit:|date:|temperature:|^\s*$|^-{5,}|tnom|copyright|license|please|for further)/i.test(l))
+                .join('\n').trim();
         }
 
         function clearAll() {
@@ -451,7 +747,7 @@ C1 out 0 1u
         }
 
         function esc(s) {
-            return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
         }
     </script>
 </body>
